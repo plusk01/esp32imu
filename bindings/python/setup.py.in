@@ -1,0 +1,19 @@
+from setuptools import setup
+
+setup(
+    name='esp32imu',
+    version='${PROJECT_VERSION}',
+    author='Parker Lusk',
+    author_email='plusk@mit.edu',
+    description='Serial driver and tools for esp32imu',
+#    package_dir={'': '${CMAKE_CURRENT_BINARY_DIR}'}, # win32 doesn't like -- paths should be relative
+    packages=['esp32imu'],
+    install_requires=[
+      "matplotlib",
+      "numpy",
+      "pyqtgraph",
+      "pyqt6",
+      "pyserial",
+    ],
+    package_data={'': ['*.so',  '*.pyd']}
+)
