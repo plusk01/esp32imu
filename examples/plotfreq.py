@@ -45,6 +45,9 @@ class IMUAnalyzer:
         self.buf_sensy = []
         self.buf_sensz = []
 
+        self.dts = []
+        self.hzs = []
+
         #
         # Plotting setup
         #
@@ -58,10 +61,16 @@ class IMUAnalyzer:
         self.window.resize(1000, 800)
         # self.window.setBackground('k')
 
+        self.tdiffwin = QtWidgets.QWidget()
+        self.tdiffwin.setWindowTitle("Sample Rate")
+        self.tdiffwin.resize(1000, 800)
+
 
         # create plots
         self.pw = pg.PlotWidget(title=sens)
         self.pw2 = pg.PlotWidget(title="Spectrum")
+        self.tpw = pg.PlotWidget(title="dt")
+        self.tpw2 = pg.PlotWidget(title="Sample Rate")
 
         # create the layout and add widgets
         self.layout = QtWidgets.QGridLayout()
@@ -69,7 +78,14 @@ class IMUAnalyzer:
         self.layout.addWidget(self.pw, 0, 0)
         self.layout.addWidget(self.pw2, 1, 0)
 
+        # create the layout and add widgets
+        self.layout2 = QtWidgets.QGridLayout()
+        self.tdiffwin.setLayout(self.layout2)
+        self.layout2.addWidget(self.tpw, 0, 0)
+        self.layout2.addWidget(self.tpw2, 1, 0)
+
         self.window.show()
+        self.tdiffwin.show()
 
         #
         # Plotting loop
@@ -120,6 +136,11 @@ class IMUAnalyzer:
         (f, mag) = self._calcSpectrum(self.buf_sensz); self.pw2.plot(f, mag, pen=(3,3))
         self.pw2.enableAutoRange(axis=pg.ViewBox.XAxis)
 
+
+
+        self.tpw.plot(self.t, self.dts, pen=(1,3))
+        self.tpw2.plot(self.t, self.hzs, pen=(1,3))
+
         # "drawnow"
         self.app.processEvents()
 
@@ -143,16 +164,20 @@ class IMUAnalyzer:
             sensz = msg.gyro_z
 
         # FIFO buffer for time-domain plotting
-        self.t.append(msg.t_us)
+        self.t.append(msg.t_us / 1e6)
         self.sensx.append(sensx)
         self.sensy.append(sensy)
         self.sensz.append(sensz)
+        self.dts.append(dt)
+        self.hzs.append(hz)
 
         if len(self.t) > hz*self.SAMPLE_WINDOW_SEC:
             self.t.pop(0)
             self.sensx.pop(0)
             self.sensy.pop(0)
             self.sensz.pop(0)
+            self.dts.pop(0)
+            self.hzs.pop(0)
 
         # FIFO buffer for FFT
         self.buf_sensx.append(sensx)
