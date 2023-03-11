@@ -29,8 +29,11 @@ uint32_t last_t_us = 0;
 void callback(const esp32imu_imu_msg_t& msg)
 {
   const double dt = (msg.t_us - last_t_us) * 1e-6; // us to s
-  const double hz = 1. / dt;
+  // const double hz = 1. / dt;
   last_t_us = msg.t_us;
+
+  std::stringstream hz;
+  hz << std::fixed << std::setprecision(0) << 1. / dt;
 
   static constexpr int w = 5;
   std::stringstream ss;
@@ -49,7 +52,7 @@ void callback(const esp32imu_imu_msg_t& msg)
      << std::setw(w) << std::setfill(' ')
      << msg.gyro_z;
 
-  std::cout << "Got IMU at " << msg.t_us << " us (" << hz << " Hz): "
+  std::cout << "Got IMU at " << msg.t_us << " us (" << hz.str() << " Hz): "
             << ss.str() << std::endl;
 }
 

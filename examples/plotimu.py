@@ -37,7 +37,7 @@ def imu_cb(msg):
 
 def main():
     # port = ti.tools.find_teensy_or_die()
-    # driver = ti.SerialDriver(port)
+    # driver = esp32imu.SerialDriver('/dev/ttyUSB0', 2000000)
     driver = esp32imu.UDPDriver()
     time.sleep(0.1)
     # could use registerCallbackIMU_NoMag or registerCallbackIMU_3DOF
