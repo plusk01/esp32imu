@@ -52,8 +52,9 @@ PYBIND11_MODULE(esp32imu, m)
     .def("unregisterCallbacks", &esp32imu::SerialDriver::unregisterCallbacks, py::call_guard<py::gil_scoped_release>());
 
   py::class_<esp32imu::UDPDriver>(m, "UDPDriver")
-    .def(py::init<const std::string&, uint32_t>(),
-          py::arg("bind_host")="0.0.0.0", py::arg("bind_port")=3333)
+    .def(py::init<const std::string&, uint32_t, const std::string&, uint32_t>(),
+          py::arg("bind_host")="0.0.0.0", py::arg("bind_port")=3333,
+          py::arg("rem_host")="192.168.4.1", py::arg("rem_port")=3333)
     .def("sendRate", &esp32imu::UDPDriver::sendRate)
     .def("sendRGBLedCmd", &esp32imu::UDPDriver::sendRGBLedCmd)
     .def("registerCallbackIMU", &esp32imu::UDPDriver::registerCallbackIMU)

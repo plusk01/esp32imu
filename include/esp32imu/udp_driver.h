@@ -22,7 +22,8 @@ namespace esp32imu {
   class UDPDriver : public AbstractDriver
   {
   public:
-    UDPDriver(const std::string& bind_host = "0.0.0.0", uint32_t bind_port = 3333);
+    UDPDriver(const std::string& bind_host = "0.0.0.0", uint32_t bind_port = 3333,
+          const std::string& rem_host = "192.168.4.1", uint32_t rem_port = 3333);
     ~UDPDriver();
 
   private:

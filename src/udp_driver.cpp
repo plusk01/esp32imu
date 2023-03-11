@@ -14,11 +14,11 @@
 
 namespace esp32imu {
 
-UDPDriver::UDPDriver(const std::string& bind_host, uint32_t bind_port)
+UDPDriver::UDPDriver(const std::string& bind_host, uint32_t bind_port, const std::string& rem_host, uint32_t rem_port)
 {
   using namespace std::placeholders;
 
-  udp_.reset(new async_comm::UDP(bind_host, bind_port));
+  udp_.reset(new async_comm::UDP(bind_host, bind_port, rem_host, rem_port));
   udp_->register_receive_callback(
             std::bind(&UDPDriver::callback, this, _1, _2));
 

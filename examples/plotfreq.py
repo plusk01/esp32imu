@@ -23,7 +23,7 @@ class IMUAnalyzer:
     # Plotting frequency for time-domain signals
     SAMPLE_PLOT_FREQ_HZ = 20
 
-    def __init__(self, port, sensor='accel'):
+    def __init__(self, sensor='accel'):
 
         # Which sensor to analyze
         self.sensor = sensor # 'accel' or 'gyro'
@@ -84,7 +84,7 @@ class IMUAnalyzer:
         #
 
         # initialize serial communications to Teensy
-        # self.driver = ti.SerialDriver(port)
+        # self.driver = ti.SerialDriver('/dev/ttyUSB0')
         self.driver = esp32imu.UDPDriver()
         time.sleep(0.1) # wait for everything to initialize
         self.driver.sendRate(500)
@@ -187,6 +187,5 @@ class IMUAnalyzer:
         return f, Y
 
 if __name__ == '__main__':
-    # port = ti.tools.find_teensy_or_die()
-    sensor = 'accel' # 'accel' or 'gyro'
+    sensor = 'gyro' # 'accel' or 'gyro'
     analyzer = IMUAnalyzer(sensor)
