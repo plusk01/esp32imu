@@ -69,38 +69,52 @@ class ViewControl:
 
         # Controls dock
         layout = pg.LayoutWidget()
-        check = QtWidgets.QCheckBox('stream online data', checked=True)
+        self.chk_stream = QtWidgets.QCheckBox('stream online data', checked=True)
         btn_enable_log = QtWidgets.QPushButton('Start SD Logging')
-        btn_disable_log = QtWidgets.QPushButton('Stop SD Logging', enabled=False)
-        btn_pull_data = QtWidgets.QPushButton('Pull SD Data')
+        btn_disable_log = QtWidgets.QPushButton('Stop SD Logging', enabled=True)
+        btn_read_log = QtWidgets.QPushButton('Read SD Log')
         label = QtWidgets.QLabel(text='0 samples copied from SD card')
-        layout.addWidget(check, row=0, col=0, colspan=1)
+        layout.addWidget(self.chk_stream, row=0, col=0, colspan=1)
         layout.addWidget(btn_enable_log, row=1, col=0)
         layout.addWidget(btn_disable_log, row=1, col=1)
-        layout.addWidget(btn_pull_data, row=2, col=0, colspan=2)
+        layout.addWidget(btn_read_log, row=2, col=0, colspan=2)
         layout.addWidget(label, row=3, col=0, colspan=1)
         self.dock_controls.addWidget(layout)
 
+        # Button setup
+        self.chk_stream.toggled.connect(self.callbacks['toggle_stream'])
+        btn_enable_log.clicked.connect(self.callbacks['start_logging'])
+        btn_disable_log.clicked.connect(self.callbacks['stop_logging'])
+        btn_read_log.clicked.connect(self.callbacks['read_log'])
+
         # RGB LED dock
         layout = pg.LayoutWidget()
-        rslider = QtWidgets.QSlider(pg.QtCore.Qt.Orientation.Horizontal)
-        rslider.setRange(0, 255)
-        gslider = QtWidgets.QSlider(pg.QtCore.Qt.Orientation.Horizontal)
-        gslider.setRange(0, 255)
-        bslider = QtWidgets.QSlider(pg.QtCore.Qt.Orientation.Horizontal)
-        bslider.setRange(0, 255)
-        islider = QtWidgets.QSlider(pg.QtCore.Qt.Orientation.Horizontal)
-        islider.setRange(0, 255)
+        self.rslider = QtWidgets.QSlider(pg.QtCore.Qt.Orientation.Horizontal)
+        self.rslider.setRange(0, 255)
+        self.gslider = QtWidgets.QSlider(pg.QtCore.Qt.Orientation.Horizontal)
+        self.gslider.setRange(0, 255)
+        self.bslider = QtWidgets.QSlider(pg.QtCore.Qt.Orientation.Horizontal)
+        self.bslider.setRange(0, 255)
+        self.bslider.setValue(255)
+        self.islider = QtWidgets.QSlider(pg.QtCore.Qt.Orientation.Horizontal)
+        self.islider.setRange(0, 100)
+        self.islider.setValue(5)
         layout.addWidget(QtWidgets.QLabel(text='RGB LED Control'), row=0, col=0, colspan=10)
         layout.addWidget(QtWidgets.QLabel(text='Red'), row=1, col=0)
-        layout.addWidget(rslider, row=1, col=1, colspan=9)
-        layout.addWidget(QtWidgets.QLabel(text='Blue'), row=2, col=0)
-        layout.addWidget(gslider, row=2, col=1, colspan=9)
-        layout.addWidget(QtWidgets.QLabel(text='Green'), row=3, col=0)
-        layout.addWidget(bslider, row=3, col=1, colspan=9)
+        layout.addWidget(self.rslider, row=1, col=1, colspan=9)
+        layout.addWidget(QtWidgets.QLabel(text='Green'), row=2, col=0)
+        layout.addWidget(self.gslider, row=2, col=1, colspan=9)
+        layout.addWidget(QtWidgets.QLabel(text='Blue'), row=3, col=0)
+        layout.addWidget(self.bslider, row=3, col=1, colspan=9)
         layout.addWidget(QtWidgets.QLabel(text='Intensity'), row=4, col=0)
-        layout.addWidget(islider, row=4, col=1, colspan=9)
+        layout.addWidget(self.islider, row=4, col=1, colspan=9)
         self.dock_rgbled.addWidget(layout)
+
+        # Slider setup
+        self.rslider.sliderReleased.connect(self.callbacks['update_rgbled'])
+        self.gslider.sliderReleased.connect(self.callbacks['update_rgbled'])
+        self.bslider.sliderReleased.connect(self.callbacks['update_rgbled'])
+        self.islider.sliderReleased.connect(self.callbacks['update_rgbled'])
 
         # Parameter tree dock
         layout = pg.LayoutWidget()
@@ -188,6 +202,11 @@ class ESP32DataViewer:
             'disconnect_udp': self._serial_disconnect,
             'update_plot': self._update_plot,
             'update_params': self._update_params,
+            'update_rgbled': self._rgbled_update,
+            'toggle_stream': self._toggle_stream,
+            'start_logging': self._start_logging,
+            'stop_logging': self._stop_logging,
+            'read_log': self._read_log,
         }
 
         params = {
@@ -201,6 +220,9 @@ class ESP32DataViewer:
 
         self.view = ViewControl(callbacks, params, plot_update_hz=self.SAMPLE_PLOT_FREQ_HZ)
         self.view.start()
+
+    def _clear_plots(self):
+        self.buf_t = None
 
     def _update_plot(self):
         if self.driver is None or self.buf_t is None:
@@ -253,6 +275,64 @@ class ESP32DataViewer:
 
         self.view.reset_connection_buttons()
 
+    def _rgbled_update(self):
+        if self.driver is None:
+            return
+
+        msg = esp32imu.RGBLedCmdMsg()
+        msg.r = self.view.rslider.value()
+        msg.g = self.view.gslider.value()
+        msg.b = self.view.bslider.value()
+        msg.brightness = self.view.islider.value()
+        self.driver.sendRGBLedCmd(msg)
+
+    def _toggle_stream(self):
+        if self.driver is None:
+            return
+
+        if self.view.chk_stream.isChecked():
+            self._clear_plots()
+
+        msg = esp32imu.ConfigMsg()
+        msg.stream = self.view.chk_stream.isChecked()
+        msg.logging = False
+        msg.readlog = False
+        self.driver.sendConfig(msg)
+
+    def _start_logging(self):
+        if self.driver is None:
+            return
+
+        msg = esp32imu.ConfigMsg()
+        msg.stream = self.view.chk_stream.isChecked()
+        msg.logging = True
+        msg.readlog = False
+        self.driver.sendConfig(msg)
+
+    def _stop_logging(self):
+        if self.driver is None:
+            return
+
+        msg = esp32imu.ConfigMsg()
+        msg.stream = self.view.chk_stream.isChecked()
+        msg.logging = False
+        msg.readlog = False
+        self.driver.sendConfig(msg)
+
+    def _read_log(self):
+        if self.driver is None:
+            return
+
+        self._clear_plots()
+
+        msg = esp32imu.ConfigMsg()
+        msg.stream = False
+        msg.logging = False
+        msg.readlog = True
+        self.driver.sendConfig(msg)
+
+        self.view.chk_stream.setChecked(False)
+
     def _imu_cb(self, msg):
         dt = (msg.t_us - self.last_t_us) * 1e-6 # us to s
         if dt == 0:
@@ -260,13 +340,13 @@ class ESP32DataViewer:
         self.last_t_us = msg.t_us
         hz = 1./dt
         self.Fs = hz
-        print('Got IMU at {} us ({:.0f} Hz): {:.2f}, {:.2f}, {:.2f}, \t {:.2f}, {:.2f}, {:.2f}'
-                .format(msg.t_us, hz,
-                        msg.accel_x, msg.accel_y, msg.accel_z,
-                        msg.gyro_x, msg.gyro_y, msg.gyro_z))
+        # print('Got IMU {} at {} us ({:.0f} Hz): {:.2f}, {:.2f}, {:.2f}, \t {:.2f}, {:.2f}, {:.2f}'
+        #         .format(msg.id, msg.t_us, hz,
+        #                 msg.accel_x, msg.accel_y, msg.accel_z,
+        #                 msg.gyro_x, msg.gyro_y, msg.gyro_z))
 
         if dt < 0:
-            self.buf_t = None
+            self._clear_plots()
 
         t = np.array([msg.t_us * 1e-6])
         acc = np.array([msg.accel_x, msg.accel_y, msg.accel_z]).reshape((1,3))
@@ -277,7 +357,7 @@ class ESP32DataViewer:
             self.buf_acc = acc
             self.buf_gyr = gyr
             self.buf_hz = np.array([hz])
-        elif len(self.buf_t) > hz * self.SAMPLE_WINDOW_SEC:
+        elif len(self.buf_t) > hz * self.SAMPLE_WINDOW_SEC and self.view.chk_stream.isChecked():
             self.buf_t = np.roll(self.buf_t, -1)
             self.buf_t[-1] = t
 

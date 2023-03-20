@@ -52,7 +52,7 @@ void callback(const esp32imu_imu_msg_t& msg)
      << std::setw(w) << std::setfill(' ')
      << msg.gyro_z;
 
-  std::cout << "Got IMU at " << msg.t_us << " us (" << hz.str() << " Hz): "
+  std::cout << "Got IMU " << msg.id << " at " << msg.t_us << " us (" << hz.str() << " Hz): "
             << ss.str() << std::endl;
 }
 
@@ -119,7 +119,7 @@ int main(int argc, char const *argv[])
 
   std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
-  driver->sendRate(500);
+  // driver->sendRate(500);
 
   esp32imu_rgbled_msg_t msg;
   msg.r = 0;

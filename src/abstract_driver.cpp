@@ -37,6 +37,15 @@ void AbstractDriver::sendRGBLedCmd(const esp32imu_rgbled_msg_t& msg)
 }
 
 // ----------------------------------------------------------------------------
+
+void AbstractDriver::sendConfig(const esp32imu_config_msg_t& msg)
+{
+  uint8_t buf[ESP32IMU_MAX_MESSAGE_LEN];
+  const size_t len = esp32imu_config_msg_send_to_buffer(buf, &msg);
+  sendBytes(buf, len);
+}
+
+// ----------------------------------------------------------------------------
 // Callback stuff
 // ----------------------------------------------------------------------------
 
@@ -56,11 +65,20 @@ void AbstractDriver::registerCallbackRate(CallbackRate cb)
 
 // ----------------------------------------------------------------------------
 
+void AbstractDriver::registerCallbackConfig(CallbackConfig cb)
+{
+  std::lock_guard<std::mutex> lock(mtx_);
+  cb_config_ = cb;
+}
+
+// ----------------------------------------------------------------------------
+
 void AbstractDriver::unregisterCallbacks()
 {
   std::lock_guard<std::mutex> lock(mtx_);
   cb_imu_ = nullptr;
   cb_rate_ = nullptr;
+  cb_config_ = nullptr;
 }
 
 
@@ -80,6 +98,9 @@ void AbstractDriver::callback(const uint8_t * data, size_t len)
           break;
         case ESP32IMU_MSG_RATE:
           handleRateMsg(msg);
+          break;
+        case ESP32IMU_MSG_CONFIG:
+          handleConfigMsg(msg);
           break;
       }
 
@@ -107,6 +128,17 @@ void AbstractDriver::handleRateMsg(const esp32imu_message_t& msg)
 
   std::lock_guard<std::mutex> lock(mtx_);
   if (cb_rate_) cb_rate_(rate);
+}
+
+// ----------------------------------------------------------------------------
+
+void AbstractDriver::handleConfigMsg(const esp32imu_message_t& msg)
+{
+  esp32imu_config_msg_t config;
+  esp32imu_config_msg_unpack(&config, &msg);
+
+  std::lock_guard<std::mutex> lock(mtx_);
+  if (cb_config_) cb_config_(config);
 }
 
 } // ns esp32imu

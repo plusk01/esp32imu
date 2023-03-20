@@ -25,6 +25,7 @@ typedef enum {
   ESP32IMU_MSG_IMU,
   ESP32IMU_MSG_RATE,
   ESP32IMU_MSG_RGBLED,
+  ESP32IMU_MSG_CONFIG,
   ESP32IMU_NUM_MSGS
 } ti_msg_type_t;
 
@@ -34,6 +35,7 @@ typedef enum {
 
 typedef struct {
   uint32_t t_us;
+  uint32_t id;
   float accel_x;
   float accel_y;
   float accel_z;
@@ -53,11 +55,18 @@ typedef struct {
   uint8_t brightness;
 } esp32imu_rgbled_msg_t;
 
+typedef struct {
+  bool stream;
+  bool logging;
+  bool readlog;
+} esp32imu_config_msg_t;
+
 // payload lengths
 static constexpr float ESP32IMU_PAYLOAD_LEN[] = {
   sizeof(esp32imu_imu_msg_t),
   sizeof(esp32imu_rate_msg_t),
-  sizeof(esp32imu_rgbled_msg_t)
+  sizeof(esp32imu_rgbled_msg_t),
+  sizeof(esp32imu_config_msg_t)
 };
 
 // TODO: Manually indicate the largest msg payload
@@ -139,6 +148,7 @@ inline void esp32imu_imu_msg_pack(esp32imu_message_t *dst, const esp32imu_imu_ms
   dst->type = ESP32IMU_MSG_IMU;
   size_t offset = 0;
   memcpy(dst->payload + offset, &src->t_us, sizeof(src->t_us)); offset += sizeof(src->t_us);
+  memcpy(dst->payload + offset, &src->id, sizeof(src->id)); offset += sizeof(src->id);
   memcpy(dst->payload + offset, &src->accel_x, sizeof(src->accel_x)); offset += sizeof(src->accel_x);
   memcpy(dst->payload + offset, &src->accel_y, sizeof(src->accel_y)); offset += sizeof(src->accel_y);
   memcpy(dst->payload + offset, &src->accel_z, sizeof(src->accel_z)); offset += sizeof(src->accel_z);
@@ -152,6 +162,7 @@ inline void esp32imu_imu_msg_unpack(esp32imu_imu_msg_t *dst, const esp32imu_mess
 {
   size_t offset = 0;
   memcpy(&dst->t_us, src->payload + offset, sizeof(dst->t_us)); offset += sizeof(dst->t_us);
+  memcpy(&dst->id, src->payload + offset, sizeof(dst->id)); offset += sizeof(dst->id);
   memcpy(&dst->accel_x, src->payload + offset, sizeof(dst->accel_x)); offset += sizeof(dst->accel_x);
   memcpy(&dst->accel_y, src->payload + offset, sizeof(dst->accel_y)); offset += sizeof(dst->accel_y);
   memcpy(&dst->accel_z, src->payload + offset, sizeof(dst->accel_z)); offset += sizeof(dst->accel_z);
@@ -220,6 +231,35 @@ inline size_t esp32imu_rgbled_msg_send_to_buffer(uint8_t *dst, const esp32imu_rg
 {
   esp32imu_message_t msg;
   esp32imu_rgbled_msg_pack(&msg, src);
+  return esp32imu_send_to_buffer(dst, &msg);
+}
+
+//=============================================================================
+// Config command message
+//=============================================================================
+
+inline void esp32imu_config_msg_pack(esp32imu_message_t *dst, const esp32imu_config_msg_t *src)
+{
+  dst->type = ESP32IMU_MSG_CONFIG;
+  size_t offset = 0;
+  memcpy(dst->payload + offset, &src->stream, sizeof(src->stream)); offset += sizeof(src->stream);
+  memcpy(dst->payload + offset, &src->logging, sizeof(src->logging)); offset += sizeof(src->logging);
+  memcpy(dst->payload + offset, &src->readlog, sizeof(src->readlog)); offset += sizeof(src->readlog);
+  esp32imu_finalize_message(dst);
+}
+
+inline void esp32imu_config_msg_unpack(esp32imu_config_msg_t *dst, const esp32imu_message_t *src)
+{
+  size_t offset = 0;
+  memcpy(&dst->stream, src->payload + offset, sizeof(dst->stream)); offset += sizeof(dst->stream);
+  memcpy(&dst->logging, src->payload + offset, sizeof(dst->logging)); offset += sizeof(dst->logging);
+  memcpy(&dst->readlog, src->payload + offset, sizeof(dst->readlog)); offset += sizeof(dst->readlog);
+}
+
+inline size_t esp32imu_config_msg_send_to_buffer(uint8_t *dst, const esp32imu_config_msg_t *src)
+{
+  esp32imu_message_t msg;
+  esp32imu_config_msg_pack(&msg, src);
   return esp32imu_send_to_buffer(dst, &msg);
 }
 
