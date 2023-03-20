@@ -3,6 +3,9 @@
 #include <FS.h>
 #include <SD.h>
 #include <SPI.h>
+#include <WiFi.h>
+#include <WiFiAP.h>
+#include <AsyncUDP.h>
 
 #include <ICM42688.h>   // Click here to get the library: http://librarymanager/All#ICM42688
 #include <RGBLed.h>     // http://librarymanager/All#RGB_WILMOUTH
@@ -14,6 +17,8 @@ SPIClass SPI3(VSPI);
 
 RGBLed rgbled(0, 2, 4, RGBLed::COMMON_ANODE);
 std::unique_ptr<ICM42688> imu;
+
+AsyncUDP udp;
 
 // IMU ring buffer
 static constexpr int IMUBUF_SIZE = 1000;
@@ -40,6 +45,11 @@ static constexpr float g = 9.80665f;
 bool stream_imu_ = true;
 
 char DATABIN[] = "/data.bin";
+
+// WIFI AP credentials
+const char *ssid = "esp32fcu";
+const char *password = "esp32fcu";
+static constexpr int UDP_PORT = 3333;
 
 //=============================================================================
 // global variables
@@ -72,6 +82,28 @@ void update_sample_rate(uint16_t rate)
  
   const size_t len = esp32imu_rate_msg_send_to_buffer(out_buf, &rate_msg);
   Serial.write(out_buf, len);
+}
+
+// --------------------------------------------------------------------
+
+void enable_wifi() {
+  // You can remove the password parameter if you want the AP to be open.
+  WiFi.softAP(ssid, password);
+
+  if (udp.listen(UDP_PORT)) {
+    udp.onPacket([](AsyncUDPPacket packet) {
+      char buf[10];
+      for (size_t i=0; i<packet.length(); ++i) {
+        message_parser(packet.data()[i]);
+      }
+    });
+  }
+}
+
+// --------------------------------------------------------------------
+
+void disable_wifi() {
+  WiFi.mode(WIFI_MODE_NULL);
 }
 
 // --------------------------------------------------------------------
@@ -122,6 +154,8 @@ void setup()
   // set up serial communication
   Serial.begin(2000000);
 
+  enable_wifi();
+
   init_fs();
   init_imu();
 
@@ -129,7 +163,7 @@ void setup()
   // RTOS Tasks
   //
 
-  xTaskCreatePinnedToCore(vLoop, "vSdLogger", 4096, NULL, 1, NULL, 1);
+  xTaskCreatePinnedToCore(vSdLogger, "vSdLogger", 4096, NULL, 1, NULL, 0);
 }
 
 //=============================================================================
@@ -164,6 +198,7 @@ void loop()
     if (stream_imu_) {
       const size_t len = esp32imu_imu_msg_send_to_buffer(out_buf, &imu_msg);
       Serial.write(out_buf, len);
+      udp.broadcastTo(out_buf, len, UDP_PORT);
     }
 
     sensor_poll_previous_us = current_time_us;
@@ -239,6 +274,7 @@ void vSdLogger(void * pvParameters) {
   
           const size_t len = esp32imu_imu_msg_send_to_buffer(out_buf, &imu_msg);
           Serial.write(out_buf, len);
+          udp.broadcastTo(out_buf, len, UDP_PORT);
         }
         
       } else {
@@ -263,29 +299,34 @@ void serialEvent()
 {
   while (Serial.available()) {
     uint8_t in_byte = (uint8_t) Serial.read();
-    if (esp32imu_parse_byte(in_byte, &msg_buf)) {
-      switch (msg_buf.type) {
-        case ESP32IMU_MSG_RATE:
-        {
-          esp32imu_rate_msg_t msg;
-          esp32imu_rate_msg_unpack(&msg, &msg_buf);
-          handle_rate_msg(msg);
-          break;
-        }
-        case ESP32IMU_MSG_RGBLED:
-        {
-          esp32imu_rgbled_msg_t msg;
-          esp32imu_rgbled_msg_unpack(&msg, &msg_buf);
-          handle_rgbled_msg(msg);
-          break;
-        }
-        case ESP32IMU_MSG_CONFIG:
-        {
-          esp32imu_config_msg_t msg;
-          esp32imu_config_msg_unpack(&msg, &msg_buf);
-          handle_config_msg(msg);
-          break;   
-        }
+    message_parser(in_byte);
+  }
+}
+
+void message_parser(uint8_t in_byte)
+{
+  if (esp32imu_parse_byte(in_byte, &msg_buf)) {
+    switch (msg_buf.type) {
+      case ESP32IMU_MSG_RATE:
+      {
+        esp32imu_rate_msg_t msg;
+        esp32imu_rate_msg_unpack(&msg, &msg_buf);
+        handle_rate_msg(msg);
+        break;
+      }
+      case ESP32IMU_MSG_RGBLED:
+      {
+        esp32imu_rgbled_msg_t msg;
+        esp32imu_rgbled_msg_unpack(&msg, &msg_buf);
+        handle_rgbled_msg(msg);
+        break;
+      }
+      case ESP32IMU_MSG_CONFIG:
+      {
+        esp32imu_config_msg_t msg;
+        esp32imu_config_msg_unpack(&msg, &msg_buf);
+        handle_config_msg(msg);
+        break;
       }
     }
   }
