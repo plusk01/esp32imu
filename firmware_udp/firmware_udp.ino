@@ -40,7 +40,7 @@ uint32_t seq = 0;
 volatile uint32_t t0_ = 0; ///< starting time
 
 // logger state machine
-enum State { IDLE, LOG, READ, DONE };
+enum State { IDLE, INIT, LOG, READ, DONE };
 State state;
 
 //=============================================================================
@@ -174,17 +174,17 @@ void vTaskGetData(void * pvParameters) {
       //       ~29usec @ 16MHz, ~26usec @ 24MHz
       imu->getAGT();
 
-      // imubuf_[imubuf_head_].data.t_sec = (micros() - t0_) * 1e-6;
-      // imubuf_[imubuf_head_].data.idx = seq++;
-      // imubuf_[imubuf_head_].data.a[0] = imu->accX();
-      // imubuf_[imubuf_head_].data.a[1] = imu->accY();
-      // imubuf_[imubuf_head_].data.a[2] = imu->accZ();
-      // imubuf_[imubuf_head_].data.g[0] = imu->gyrX();
-      // imubuf_[imubuf_head_].data.g[1] = imu->gyrY();
-      // imubuf_[imubuf_head_].data.g[2] = imu->gyrZ();
+      imubuf_[imubuf_head_].data.t_sec = (micros() - t0_) * 1e-6;
+      imubuf_[imubuf_head_].data.idx = seq++;
+      imubuf_[imubuf_head_].data.a[0] = imu->accX();
+      imubuf_[imubuf_head_].data.a[1] = imu->accY();
+      imubuf_[imubuf_head_].data.a[2] = imu->accZ();
+      imubuf_[imubuf_head_].data.g[0] = imu->gyrX();
+      imubuf_[imubuf_head_].data.g[1] = imu->gyrY();
+      imubuf_[imubuf_head_].data.g[2] = imu->gyrZ();
 
-      // // move the head of the buffer, wrapping around if neccessary
-      // imubuf_head_ = (imubuf_head_ + 1) % IMUBUF_SIZE;      
+      // move the head of the buffer, wrapping around if neccessary
+      imubuf_head_ = (imubuf_head_ + 1) % IMUBUF_SIZE;      
     }
   }
 }
@@ -231,8 +231,8 @@ void setup()
 
   delay(1000);
 
-  file_ = fs_.open(DATABIN, FILE_WRITE);
-  Serial.print(DATABIN); Serial.print(": "); Serial.print(file_.size()); Serial.println(" bytes");
+  // file_ = fs_.open(DATABIN, FILE_WRITE);
+  // Serial.print(DATABIN); Serial.print(": "); Serial.print(file_.size()); Serial.println(" bytes");
 
   xTaskCreatePinnedToCore(vTaskGetData, "vTaskGetData", 1024, NULL, 2, &xTaskToNotify, 1);
   xTaskCreatePinnedToCore(vLoop, "vLoop", 4096, NULL, 1, NULL, 1);
@@ -278,7 +278,11 @@ void vLoop(void * pvParameters) {
   for (;;) {
 
     if (state == State::IDLE) {
+      state = State::LOG;
+    } else if (state == State::INIT) {
       t0 = millis() * 1e-3;
+      file_ = fs_.open(DATABIN, FILE_WRITE);
+      Serial.print(DATABIN); Serial.print(": "); Serial.print(file_.size()); Serial.println(" bytes");
       state = State::LOG;
     } else if (state == State::LOG) {
     
@@ -365,7 +369,7 @@ void vLoop(void * pvParameters) {
 
 void message_parser(uint8_t in_byte)
 {
-  if (esp32imu_parse_byte(in_byte, &msg_buf)) {
+  if (esp32imu_parse_byte(in_byte, &msg_buf, nullptr)) {
     switch (msg_buf.type) {
       case ESP32IMU_MSG_RATE:
       {
