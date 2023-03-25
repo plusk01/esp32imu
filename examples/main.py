@@ -228,6 +228,11 @@ class ESP32DataViewer:
         if self.driver is None or self.buf_t is None:
             return
 
+        # use this as a naive synchronization barrier
+        if (len(self.buf_t) != len(self.buf_hz) or
+                len(self.buf_t) != len(self.buf_acc) or len(self.buf_t) != len(self.buf_gyr)):
+            return
+
         self.view.curve_hz.setData(self.buf_t, np.round(self.buf_hz))
 
         self.view.curve_accx.setData(self.buf_t, self.buf_acc[:,0])
