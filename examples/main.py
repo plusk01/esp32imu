@@ -1,5 +1,5 @@
-
 import time, sys
+import asyncio
 
 import numpy as np
 
@@ -73,12 +73,14 @@ class ViewControl:
         btn_enable_log = QtWidgets.QPushButton('Start SD Logging')
         btn_disable_log = QtWidgets.QPushButton('Stop SD Logging', enabled=True)
         btn_read_log = QtWidgets.QPushButton('Read SD Log')
-        label = QtWidgets.QLabel(text='0 samples copied from SD card')
+        btn_save_csv = QtWidgets.QPushButton('Save Data in Window to CSV')
+        # self.lbl_samples_read = QtWidgets.QLabel(text='0 samples copied from SD card')
         layout.addWidget(self.chk_stream, row=0, col=0, colspan=1)
         layout.addWidget(btn_enable_log, row=1, col=0)
         layout.addWidget(btn_disable_log, row=1, col=1)
         layout.addWidget(btn_read_log, row=2, col=0, colspan=2)
-        layout.addWidget(label, row=3, col=0, colspan=1)
+        layout.addWidget(btn_save_csv, row=3, col=0, colspan=2)
+        # layout.addWidget(self.lbl_samples_read, row=3, col=0, colspan=1)
         self.dock_controls.addWidget(layout)
 
         # Button setup
@@ -86,6 +88,7 @@ class ViewControl:
         btn_enable_log.clicked.connect(self.callbacks['start_logging'])
         btn_disable_log.clicked.connect(self.callbacks['stop_logging'])
         btn_read_log.clicked.connect(self.callbacks['read_log'])
+        btn_save_csv.clicked.connect(self.callbacks['save_to_csv'])
 
         # RGB LED dock
         layout = pg.LayoutWidget()
@@ -207,6 +210,7 @@ class ESP32DataViewer:
             'start_logging': self._start_logging,
             'stop_logging': self._stop_logging,
             'read_log': self._read_log,
+            'save_to_csv': self._save_to_csv,
         }
 
         params = {
@@ -226,11 +230,6 @@ class ESP32DataViewer:
 
     def _update_plot(self):
         if self.driver is None or self.buf_t is None:
-            return
-
-        # use this as a naive synchronization barrier
-        if (len(self.buf_t) != len(self.buf_hz) or
-                len(self.buf_t) != len(self.buf_acc) or len(self.buf_t) != len(self.buf_gyr)):
             return
 
         self.view.curve_hz.setData(self.buf_t, np.round(self.buf_hz))
@@ -337,6 +336,9 @@ class ESP32DataViewer:
         self.driver.sendConfig(msg)
 
         self.view.chk_stream.setChecked(False)
+
+    def _save_to_csv(self):
+        pass
 
     def _imu_cb(self, msg):
         dt = (msg.t_us - self.last_t_us) * 1e-6 # us to s
