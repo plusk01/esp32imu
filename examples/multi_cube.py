@@ -128,7 +128,7 @@ class myEKF:
     def __init__(self,pos):
         self.q = np.array([1., 0, 0, 0])
         self.cube = mk_cube(pos)
-        self.filt = EKF()
+        self.filt = EKF(frame='ENU')
 
     def update(self,accel,gyro):
         self.q = self.filt.update(self.q, gyro, accel)
@@ -144,7 +144,7 @@ def imu_callback(msg):
 def worker():
     while True:
         accel,gyro = que.get()
-        print(que.qsize())
+        # print(que.qsize())
         for cube in cubes:
             cube.update(accel,gyro)
 
