@@ -199,10 +199,10 @@ class ESP32DataViewer:
         self.driver = None
 
         callbacks = {
-            'connect_serial': self._serial_connect,
-            'disconnect_serial': self._serial_disconnect,
-            'connect_udp': self._serial_connect,
-            'disconnect_udp': self._serial_disconnect,
+            'connect_serial': lambda: self._connect(serial=True),
+            'disconnect_serial': self._disconnect,
+            'connect_udp': lambda: self._connect(serial=False),
+            'disconnect_udp': self._disconnect,
             'update_plot': self._update_plot,
             'update_params': self._update_params,
             'update_rgbled': self._rgbled_update,
@@ -254,24 +254,28 @@ class ESP32DataViewer:
                 if self.driver:
                     self.driver.sendRate(self.IMU_SAMPLE_RATE)
 
-    def _serial_connect(self):
+    def _connect(self, serial=True):
         self.last_t_us = 0
         self.buf_t = None
         self.buf_acc = None
         self.buf_gyr = None
         self.buf_hz = None
 
-        # initialize serial communications
-        self.driver = esp32imu.SerialDriver('/dev/ttyUSB0', 2000000)
+        # initialize communications
+        if serial:
+            self.driver = esp32imu.SerialDriver('/dev/ttyUSB0', 2000000)
+        else:
+            self.driver = esp32imu.UDPDriver()
         time.sleep(0.1) # wait for everything to initialize
         # self.driver.sendRate(self.IMU_SAMPLE_RATE)
 
         # Connect an IMU callback that will fire when a sample arrives
         self.driver.registerCallbackIMU(self._imu_cb)
 
-        self.view.disable_connection_buttons(enable=self.view.btn_dis_serial)
+        btn = self.view.btn_dis_serial if serial else self.view.btn_dis_udp
+        self.view.disable_connection_buttons(enable=btn)
 
-    def _serial_disconnect(self):
+    def _disconnect(self):
         # clean up to prevent error or resource deadlock
         self.driver.unregisterCallbacks()
         del self.driver
@@ -338,7 +342,8 @@ class ESP32DataViewer:
         self.view.chk_stream.setChecked(False)
 
     def _save_to_csv(self):
-        pass
+        data = np.c_[self.buf_t, self.buf_acc, self.buf_gyr]
+        np.savetxt('data.csv', data, delimiter=',')
 
     def _imu_cb(self, msg):
         dt = (msg.t_us - self.last_t_us) * 1e-6 # us to s
