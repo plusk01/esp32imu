@@ -19,7 +19,7 @@ After cloning this project onto your computer:
   make
   ```
   
-Once the package builds successfully, you can install the `esp32comm` Python package as described below.
+Once the package builds successfully, you can install the `esp32imu` Python package as described below.
 
 </details>
 
@@ -37,16 +37,16 @@ Compilation of this package has been tested on a Windows 10 machine. The environ
 Once the development environment is setup, use `git bash` (or `cmd`) to run the following commands
 
 ```bash
-$ git clone https://github.com/plusk01/esp32comm # clone this repo in your preferred directory
-$ cd esp32comm
+$ git clone https://github.com/plusk01/esp32imu # clone this repo in your preferred directory
+$ cd esp32imu
 $ mkdir build
 $ cd build
 $ cmake -DBUILD_SHARED_LIBS=OFF ..
-$ cmake --build . --target ALL_BUILD --config Release # or open in VS: start esp32comm.sln
+$ cmake --build . --target ALL_BUILD --config Release # or open in VS: start esp32imu.sln
 $ cmake --build . --target pypkg --config Release # to tar python pkg
 ```
 
-Once the package builds successfully, you can install the `esp32comm` Python package as described below.
+Once the package builds successfully, you can install the `esp32imu` Python package as described below.
 
 </details>
 
@@ -60,6 +60,15 @@ cd build
 make pip-install
 ```
 
+**Note:** On windows, if the `make pip-install` command doesn't work, you will need to manually install the python package with
+
+```bash
+cd build/bindings/python
+python -m pip install .
+```
+
+Check that `esp32imu` is properly installed by opening a new terminal and running `python -m pip list` and looking for the `esp32imu` package. Further, run python and `import esp32imu` and `dir(esp32imu)` - you should see a list of `esp32imu` attributes, including `SerialDriver`.
+
 </details>
 
 ## Setting up the ESP32 firmware
@@ -68,10 +77,10 @@ Flash ESP32 with `firmware_serial/firmware_serial.ino` sketch for serial comm an
 
 ## Examples
 
-See an IMU data plot in real-time with `python -m esp32comm.plotimu`. Alternatively, you can see the frequency spectrum with `python -m esp32comm.plotfreq`
+See an IMU data plot in real-time with `python -m esp32imu.plotimu`. Alternatively, you can see the frequency spectrum with `python -m esp32imu.plotfreq`
 
 ## Creating New Messages
 
-To create new or change existing messages, changes need to be made in `esp32comm.h` and in `serial_driver.cpp`. For these changes to appear in Python, `py_teensyimu.cpp` also needs to be changed. For an example of necessary changes, see [this commit](https://github.com/plusk01/teensyimu/commit/2f2101865d4a2deb641b958747ef80e209a2884f) where two new messages (*IMU_NoMag* and *IMU_3DOF*) were added.
+To create new or change existing messages, changes need to be made in `esp32imu.h` and in `serial_driver.cpp`. For these changes to appear in Python, `py_teensyimu.cpp` also needs to be changed. For an example of necessary changes, see [this commit](https://github.com/plusk01/teensyimu/commit/2f2101865d4a2deb641b958747ef80e209a2884f) where two new messages (*IMU_NoMag* and *IMU_3DOF*) were added.
 
 If messages are changed, this project must be built from source.
