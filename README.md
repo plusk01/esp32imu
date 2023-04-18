@@ -3,6 +3,16 @@ Real-time IMU Processing from ESP32
 
 Supporting software to stream IMU (ICM-42688-p) connected to ESP32 via SPI onto desktop computer via serial or WiFi. Serial/UDP IO is handled in C++ and exposed to Python with pybind11.
 
+## Getting Started
+
+This repo provides the `esp32imu` Python package to allow easy access to the hardware from Python. The Python package includes C++ serial and UDP drivers for quickly communicating with the esp32. The C++ is hidden from the user via `pybind11`.
+
+Once `esp32imu` is installed on your machine, you will be able to quickly plot data (see **Examples** below) like:
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/wiki/plusk01/esp32imu/assets/esp32imu_main.png" width="70%" />
+</p>
+
 ### Building from Source
 
 <details>
@@ -77,7 +87,17 @@ Flash ESP32 with `firmware_serial/firmware_serial.ino` sketch for serial comm an
 
 ## Examples
 
-See an IMU data plot in real-time with `python -m esp32imu.plotimu`. Alternatively, you can see the frequency spectrum with `python -m esp32imu.plotfreq`
+See an IMU data plot in real-time with the `examples/main.py` file.
+
+### Attitude Estimation
+
+You can use the `esp32imu` package for attitude estimation demos. To enable assessing algorithm accuracy, [a cube can be built](https://cad.onshape.com/documents/907c1f0c92825ebc17bb110c/w/8f20c2a6a4481ab665843723/e/7afa668594b6190813d99992?renderMode=0&uiState=643e12405b50424167707143) so that true pitch and roll angles can always be identified.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/wiki/plusk01/esp32imu/assets/cube.jpg" width="48%" />
+  <img src="https://raw.githubusercontent.com/wiki/plusk01/esp32imu/assets/cube.gif" width="45%" />
+</p>
+
 
 ## Creating New Messages
 
