@@ -10,7 +10,7 @@ This repo provides the `esp32imu` Python package to allow easy access to the har
 Once `esp32imu` is installed on your machine, you will be able to quickly plot data (see **Examples** below) like:
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/wiki/plusk01/esp32imu/assets/esp32imu_main.png" width="70%" />
+  <img src="https://raw.githubusercontent.com/wiki/plusk01/esp32imu/assets/esp32imu_main.png" width="100%" />
 </p>
 
 ### Building from Source
