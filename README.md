@@ -104,3 +104,9 @@ You can use the `esp32imu` package for attitude estimation demos. To enable asse
 To create new or change existing messages, changes need to be made in `esp32imu.h` and in `serial_driver.cpp`. For these changes to appear in Python, `py_teensyimu.cpp` also needs to be changed. For an example of necessary changes, see [this commit](https://github.com/plusk01/teensyimu/commit/2f2101865d4a2deb641b958747ef80e209a2884f) where two new messages (*IMU_NoMag* and *IMU_3DOF*) were added.
 
 If messages are changed, this project must be built from source.
+
+## Board Pinout
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/wiki/plusk01/esp32imu/assets/board_pinout.png" width="60%" />
+</p>
